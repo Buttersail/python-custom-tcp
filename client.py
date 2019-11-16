@@ -2,6 +2,8 @@ import socket
 import threading
 import configparser
 
+from counterUtils import CounterUtils
+
 config = configparser.ConfigParser()
 config.read('conf.ini')
 
@@ -27,15 +29,13 @@ try:
         heartbeat(server_address)
 
     while True:
-        # message = input('Type your message!')
-        # connection.sendto(('msg-%i=%s' % (counter, message)).encode(), server_address)
+        message = input('Type your message!')
+        connection.sendto(('msg-%i=%s' % (counter, message)).encode(), server_address)
 
         data, _ = connection.recvfrom(4096)
-        counter += 2
+        counter = CounterUtils.parse_and_increment_counter(data.decode())
 
-        if data.startswith(b'res-'):
-            print(data)
-        elif data.startswith(b'con-res'):
+        if data.startswith(b'con-res'):
             print('Connection was reset')
             connection.sendto(b'con-res 0xFF', server_address)
 

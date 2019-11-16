@@ -5,6 +5,7 @@ import time
 import logging
 
 from connectedClient import ConnectedClient, ConnectionState
+from counterUtils import CounterUtils
 
 config = configparser.ConfigParser()
 config.read('conf.ini')
@@ -70,7 +71,8 @@ while True:
         connected_clients[address].reset_timer(connection_reset)
 
         if data.startswith(b'msg-'):
-            clientCounter = int(re.compile(r"msg-(\d+).*").match(data.decode()).group(1)) + 1
+            print(data)
+            clientCounter = CounterUtils.parse_and_increment_counter(data.decode())
             sent = connection.sendto(('res-%i=I am server' % (clientCounter)).encode(), address)
         elif data.startswith(b'con-res'):
             print('Received reset ack from Client')
