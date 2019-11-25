@@ -14,7 +14,7 @@ class ConnectedClient:
     def __init__(self, address):
         self.address = address
 
-    def reset_timer(self, connection_reset):
+    def connection_reset_timer(self, connection_reset):
         if self.timer is not None:
             self.timer.cancel()
         self.timer = threading.Timer(4, connection_reset, [self.address])

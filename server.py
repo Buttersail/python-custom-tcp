@@ -36,6 +36,7 @@ connected_clients = {}
 while True:
     print('\nwaiting to receive message')
     data, address = connection.recvfrom(4096)
+    print(data)
 
     if address not in connected_clients:
         connected_clients[address] = ConnectedClient(address)
@@ -49,32 +50,34 @@ while True:
     else:
         packages_received = (time.time(), 1)
 
-    if connected_clients[address].connection_state == ConnectionState.INITIAL:
+    if data.startswith(b'con-h'):
+        connected_clients[address].connection_reset_timer(connection_reset)
+        print("Heartbeat *dunk*")
+    elif connected_clients[address].connection_state == ConnectionState.INITIAL:
         if data.startswith(b'com-0'):
             print('received req from {}'.format(address))
             sent = connection.sendto(('com-0 accept %s' % (socket.gethostbyname(socket.gethostname()))).encode(),
                                      address)
+            print(('com-0 accept %s' % (socket.gethostbyname(socket.gethostname()))).encode())
             print('sent ack to {}'.format(address))
             connected_clients[address].connection_state = ConnectionState.HANDSHAKE_SERVER_ACK
             handshake_logger.info('Initial handshake from %s', [address])
         else:
-            connection.sendto(b'con-err finish handshake first', address)
+            connection.sendto(b'con-err1 finish handshake first', address)
     elif connected_clients[address].connection_state == ConnectionState.HANDSHAKE_SERVER_ACK:
         if data == b'com-0 accept':
             print('received ack from {}'.format(address))
-            connected_clients[address].reset_timer(connection_reset)
+            connected_clients[address].connection_reset_timer(connection_reset)
             connected_clients[address].connection_state = ConnectionState.VERIFIED
             handshake_logger.info('Handshake from %s finished', [address])
         else:
-            connection.sendto(b'con-err finish handshake first', address)
+            connection.sendto(b'con-err2 finish handshake first', address)
     elif connected_clients[address].connection_state == ConnectionState.VERIFIED:
-        connected_clients[address].reset_timer(connection_reset)
+        connected_clients[address].connection_reset_timer(connection_reset)
 
         if data.startswith(b'msg-'):
-            print(data)
             clientCounter = CounterUtils.parse_and_increment_counter(data.decode())
             sent = connection.sendto(('res-%i=I am server' % (clientCounter)).encode(), address)
         elif data.startswith(b'con-res'):
             print('Received reset ack from Client')
-        elif data.startswith(b'con-h'):
-            print("Heartbeat *dunk*")
+
